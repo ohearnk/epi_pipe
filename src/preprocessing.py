@@ -121,6 +121,21 @@ def write_adj_mat(node_list, adj_mat, out_file):
     fp.close() 
 
 
+def write_bin_adj_mat(filename, adj_mat):
+    # saves a numpy data structure to binary file
+    # with the specified filename and a .npy extension
+   np.save(filename, adj_mat)
+
+
+
+def load_bin_adj_mat(filename):
+    # loads a numpy data structure from the specified
+    # numpy archive
+    # note: requires exact filename, including .npy is specified
+    adj_mat = np.load(filename)
+    return adj_mat
+
+
 def write_gml_format(nx_obj, out_file):
     nx.write_gml(nx_obj, out_file)
 
@@ -361,3 +376,30 @@ def calc_raw_comm(adj_mat, p, q):
             raw_comm = raw_comm + 1.0/ \
                 (1.0+p*row_neighbors+(1.0-q)*(adj_mat.shape[0]-row_neighbors-1))
         return raw_comm
+
+
+def set1_tsv_to_adj_mat(fp):
+    # total number of antennas
+    num_ants = 1238
+
+    # adjacency matrices of of src/dest ants by # calls, cum. time
+    calls_adj_mat = np.zeros( (num_ants, num_ants), dtype=int)
+    time_adj_mat = np.zeros( (num_ants, num_ants), dtype=int)
+
+    # tab-separated record format:
+    #   date, 24-hr time, src ant, dest ant, # calls between ants, cum. time (secs)
+    #   Ex: 2012-04-23, 08:00:00, 102, 423, 4, 273
+    for line in fp:
+        # parse line
+        line = line.split()
+        src = int(line[2])-1
+        dest = int(line[3])-1
+        num_calls = int(line[4])
+        time = int(line[5])
+        # update matrices
+        calls_adj_mat[src,dest] +=  num_calls
+        calls_adj_mat[dest,src] += num_calls
+        time_adj_mat[src,dest] +=  time
+        time_adj_mat[dest,src] += time
+
+    return calls_adj_mat, time_adj_mat
